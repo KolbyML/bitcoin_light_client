@@ -1,4 +1,4 @@
-library bitcoinlightnode;
+library bitcoindart;
 
 /// A Calculator.
 class Calculator {

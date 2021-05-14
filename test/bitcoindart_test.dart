@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bitcoinlightnode/bitcoinlightnode.dart';
+import 'package:bitcoindart/bitcoindart.dart';
 
 void main() {
   test('adds one to input values', () {

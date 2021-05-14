@@ -1,4 +1,4 @@
-# bitcoinlightnode
+# bitcoindart
 
 A new Flutter package project.
 
