@@ -66,7 +66,7 @@ class CAnonMsg {
     return sha256.convert(sha256.convert(serialize()).bytes).bytes;
   }
   List<int> serialize() {
-    List<int> messageData = uint64ToListIntLE(msgTime) + uint8ToListIntLE(msgData.length) + utf8.encode(msgData);
+    List<int> messageData = uint64ToListIntLE(msgTime) + [utf8.encode(msgData).length] + utf8.encode(msgData);
     return messageData;
   }
 
