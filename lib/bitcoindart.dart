@@ -12,14 +12,19 @@ import 'package:crypto/crypto.dart';
 import 'package:collection/collection.dart';
 
 // Actually use global vars
-int DEFAULT_PORT = 8333;
 List<int> IPV4_COMPAT = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
-List<int> magic = [0xf9, 0xbe, 0xb4, 0xd9];
-String default_user_agent = "/Bitcoin Dart LN:1.0.0/";
 Map<String, int> nodeList = Map<String, int>();
 List<MessageNodes> nodes = [];
-Map<List<int>, CAnonMsg> mapAnonMsg = Map<List<int>, CAnonMsg>();
 ServerSocket server;
+Configuration config;
+
+class Configuration {
+  String default_user_agent;
+  int default_port;
+  List<int> magic;
+
+  Configuration({String this.default_user_agent = "/Bitcoin Dart LN:1.0.0/", int this.default_port = 8333, List<int> this.magic = const [0xf9, 0xbe, 0xb4, 0xd9]});
+}
 
 // Default Message Types
 String version = "version";
@@ -31,51 +36,6 @@ String getdata = "getdata";
 String addr = "addr";
 String getaddr = "getaddr";
 String reject = "reject";
-
-// Custom Message Types
-String anonmsg = "anonmsg";
-String getanonmsg = "getanonmsg";
-
-class CAnonMsg {
-  int msgTime;
-  String msgData;
-
-  CAnonMsg() {
-    msgTime = 0;
-  }
-
-  void setMessage(String msgContent) {
-    msgTime = new DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    msgData = msgContent;
-  }
-
-  String getMessage() {
-    return msgData;
-  }
-
-  int getTimestamp() {
-    return msgTime;
-  }
-
-  String toString() {
-    String string = ('CAnonMsg msgTime: $msgTime, msgData: $msgData');
-    return string;
-  }
-
-  List<int> getHash() {
-    return sha256.convert(sha256.convert(serialize()).bytes).bytes;
-  }
-  List<int> serialize() {
-    List<int> messageData = uint64ToListIntLE(msgTime) + [utf8.encode(msgData).length] + utf8.encode(msgData);
-    return messageData;
-  }
-
-  void deserialize(List<int> data) {
-    msgTime = listIntToUint64LE(data.sublist(0, 8));
-    int msgDataLength = listIntToUint8LE(data.sublist(8, 9));
-    msgData = utf8.decode(data.sublist(9, 9 + msgDataLength.abs()), allowMalformed: true);
-  }
-}
 
 class MsgPing {
   int nonce;
@@ -204,7 +164,7 @@ class MsgVersion {
     addr_recv = CAddress.data("127.0.0.1");
     addr_from = CAddress();
     nonce = getrandbits64();
-    user_agent = default_user_agent;
+    user_agent = config.default_user_agent;
     start_height = 0;
     relay = 0;
   }
@@ -240,7 +200,7 @@ class MsgHeader {
   List<int> _payload;
 
   MsgHeader() {
-    _magic = magic;
+    _magic = config.magic;
     _command = "";
     _length = 0;
     _checksum = 0;
@@ -295,7 +255,7 @@ class MessageNodes {
     int k = 0;
 
     while (mutableDataList.isNotEmpty) {
-      if (IterableEquality().equals([mutableDataList[0], mutableDataList[1], mutableDataList[2], mutableDataList[3]], magic)) {
+      if (IterableEquality().equals([mutableDataList[0], mutableDataList[1], mutableDataList[2], mutableDataList[3]], config.magic)) {
         int size = listIntToUint32LE(mutableDataList.sublist(16,20));
         int checksum = listIntToUint32LE(mutableDataList.sublist(20,24));
         List<int> payloadData =  mutableDataList.sublist(24, 24 + size);
@@ -373,16 +333,7 @@ class MessageNodes {
 
       MsgGetData msgGetData = MsgGetData();
 
-      for (CInv k in msgInvData) {
-        if (k.type == 20) {
-          for (List<int> i in mapAnonMsg.keys) {
-            if (IterableEquality().equals(k.hash, i)) {
-              break;
-            }
-          }
-          msgGetData.invVector.add(k);
-        }
-      }
+      msgGetData = extendInv(msgInvData, msgGetData);
 
       if (msgGetData.invVector.isNotEmpty) {
         MsgHeader msgGetMessage = new MsgHeader();
@@ -425,44 +376,15 @@ class MessageNodes {
       print('ERROR code: $ccode\n'
           'message: $message\n'
           'reason: $reason\n');
-    } else if (msgHeader._command == anonmsg) {
-      CAnonMsg cAnonMsg = new CAnonMsg();
-      cAnonMsg.deserialize(msgHeader._payload);
-
-      // If we already have this message return and don't add it.
-      if (mapAnonMsg.isNotEmpty) {
-        for (var k in mapAnonMsg.keys) {
-          if (IterableEquality().equals(k, cAnonMsg.getHash())) {
-            return;
-          }
-        }
-      }
-
-      // Don't add message if it is over a day old
-      if ((cAnonMsg.msgTime + 24*60*60) < DateTime.now().millisecondsSinceEpoch ~/ 1000) {
-        return;
-      }
-
-      mapAnonMsg[cAnonMsg.getHash()] = cAnonMsg;
-
-      MsgHeader anonMsgMessage = new MsgHeader();
-      anonMsgMessage._command = anonmsg;
-      anonMsgMessage._payload = cAnonMsg.serialize();
-      relayMessage(anonMsgMessage.serialize());
-
-
-    } else if (msgHeader._command == getanonmsg) {
-      mapAnonMsg.values.forEach((cAnonMsg) {
-        MsgHeader anonMsgMessage = new MsgHeader();
-        anonMsgMessage._command = anonmsg;
-        anonMsgMessage._payload = cAnonMsg.serialize();
-
-        // send the message
-        pushMessage(anonMsgMessage.serialize());
-      });
     } else {
-      // We don't support this command add code to tell the node to ignore us for it or something
+      extendCommandsSupported(msgHeader);
     }
+  }
+
+  MsgGetData extendInv(List<CInv> msgInvData, MsgGetData msgGetData) {
+  }
+
+  void extendCommandsSupported(MsgHeader msgHeader) {
   }
 
   void errorHandler(error){
@@ -483,7 +405,7 @@ class MessageNodes {
 }
 
 void startServerSocket() {
-  ServerSocket.bind(InternetAddress.anyIPv4, DEFAULT_PORT)
+  ServerSocket.bind(InternetAddress.anyIPv4, config.default_port)
       .then((ServerSocket socket) {
     server = socket;
     server.listen((node) {
@@ -492,19 +414,13 @@ void startServerSocket() {
   });
 }
 
-void startNode({List<int> customMagic = null, String customUserAgent = null, int customPort = null}) {
+void startNode({Configuration configuration = null}) {
   print('hi');
 
-  if (customMagic != null) {
-    magic = customMagic;
-  }
-
-  if (customUserAgent != null) {
-    default_user_agent = customUserAgent;
-  }
-
-  if (customPort != null) {
-    DEFAULT_PORT = customPort;
+  if (configuration == null) {
+    config = Configuration();
+  } else {
+    config = configuration;
   }
 
   // getnode list
@@ -553,7 +469,7 @@ int periodCount = 0;
 bool addNode(String ip, [port = null]) {
 
   if (port == null) {
-    port = DEFAULT_PORT;
+    port = config.default_port;
   }
 
   periodCount++;
@@ -621,53 +537,6 @@ void sendGetAddrMessage(MessageNodes messageNodes) {
   messageNodes.pushMessage(getAddrMessage.serialize());
 }
 
-void sendGetAnonMessage() {
-  nodes.forEach((messageNodes) {
-    MsgHeader getAnonMessage = new MsgHeader();
-    getAnonMessage._command = getanonmsg;
-
-    // send the message
-    messageNodes.pushMessage(getAnonMessage.serialize());
-  });
-}
-
-void sendAnonMessage(String message) {
-  bool didWeAddMessage = false;
-  nodes.forEach((messageNodes) {
-    MsgHeader sendAnonMessage = new MsgHeader();
-    CAnonMsg cAnonMsg = CAnonMsg();
-    sendAnonMessage._command = anonmsg;
-    cAnonMsg.setMessage(message);
-    sendAnonMessage._payload = cAnonMsg.serialize();
-
-    if (!didWeAddMessage) {
-      mapAnonMsg[cAnonMsg.getHash()] = cAnonMsg;
-      didWeAddMessage = true;
-    }
-
-    // send the message
-    messageNodes.pushMessage(sendAnonMessage.serialize());
-  });
-}
-
-void updateAnonMessage() {
-  nodes.forEach((messageNodes) {
-    MsgHeader getanonMessage = new MsgHeader();
-    getanonMessage._command = getanonmsg;
-
-    // send the message
-    messageNodes.pushMessage(getanonMessage.serialize());
-  });
-}
-
-void removeOldAnonMessage() {
-  mapAnonMsg.keys.forEach((element) {
-    if (((mapAnonMsg[element].getTimestamp() + 24*60*60) < (DateTime.now().millisecondsSinceEpoch ~/ 1000))) {
-      mapAnonMsg.remove(element);
-    }
-  });
-}
-
 class MsgAddr {
   List<CAddress> addrList;
 
@@ -704,7 +573,7 @@ class CAddress {
   CAddress() {
     nServices = 0;
     ip = "0.0.0.0";
-    port = DEFAULT_PORT;
+    port = config.default_port;
     nTime = new DateTime.now().millisecondsSinceEpoch ~/ 1000;
     isVersionMessage = true;
   }
@@ -712,7 +581,7 @@ class CAddress {
   CAddress.data(String ipIn, [int portIn = null, int nServicesIn = 0]) {
     nServices = nServicesIn;
     ip = ipIn;
-    port = (portIn == null) ? DEFAULT_PORT : portIn;
+    port = (portIn == null) ? config.default_port : portIn;
     nTime = new DateTime.now().millisecondsSinceEpoch ~/ 1000;
     isVersionMessage = true;
   }
@@ -720,7 +589,7 @@ class CAddress {
   CAddress.notVersion() {
     nServices = 0;
     ip = "0.0.0.0";
-    port = DEFAULT_PORT;
+    port = config.default_port;
     nTime = new DateTime.now().millisecondsSinceEpoch ~/ 1000;
     isVersionMessage = false;
   }
