@@ -126,12 +126,6 @@ String SanitizeStringListInt(List<int> data) {
   return string;
 }
 
-List<CAnonMsg> sortAnonMsg(List<CAnonMsg> data) {
-  print('length ${data.length}');
-  data.sort((CAnonMsg a, CAnonMsg b) => b.getTimestamp().compareTo(a.getTimestamp()));
-  return data;
-}
-
 int getrandbits64() {
   var r = new Random();
   int random1 = r.nextInt(pow(2, 32));
