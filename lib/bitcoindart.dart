@@ -437,8 +437,8 @@ class MessageNodes {
   }
 }
 
-void startServerSocket() {
-  ServerSocket.bind(InternetAddress.anyIPv4, config.default_port)
+void startServerSocket(int port) {
+  ServerSocket.bind(InternetAddress.anyIPv4, port)
       .then((ServerSocket socket) {
     server = socket;
     server.listen((node) {
