@@ -1,6 +1,6 @@
-name: bitcoindart
-description: A new Flutter package project.
-version: 0.0.1
+name: bitcoindart_light_client
+description: A bitcoin p2p light client
+version: 0.0.2
 homepage:
 
 environment:
