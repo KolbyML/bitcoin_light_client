@@ -24,6 +24,7 @@ class Configuration {
   List<int> magic;
 
   Configuration({String this.default_user_agent = "/Bitcoin Dart LN:1.0.0/", int this.default_port = 8333, List<int> this.magic = const [0xf9, 0xbe, 0xb4, 0xd9]});
+  Configuration.custom(String default_user_agent, int default_port, List<int> magic) : this.default_user_agent = default_user_agent, this.default_port = default_port, this.magic = magic;
 }
 
 // Default Message Types
@@ -339,8 +340,7 @@ class MessageNodes {
       // send the message
       pushMessage(verackMessage.serialize());
 
-      sendGetAnonMessage();
-      //sendAnonMessage('Lunar Lander Space man 123321 hello lamda');
+      extendVersion();
 
     } else if (msgHeader._command == verack) {
       fSuccessfullyConnected = true;
@@ -409,6 +409,9 @@ class MessageNodes {
     } else {
       extendCommandsSupported(msgHeader);
     }
+  }
+
+  void extendVersion() {
   }
 
   MsgGetData extendInv(List<CInv> msgInvData, MsgGetData msgGetData) {
