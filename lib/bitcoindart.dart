@@ -199,6 +199,12 @@ class MsgHeader {
   int _checksum;
   List<int> _payload;
 
+  List<int> get magic => _magic;
+
+  set magic(List<int> value) {
+    _magic = value;
+  }
+
   MsgHeader() {
     _magic = config.magic;
     _command = "";
@@ -218,6 +224,30 @@ class MsgHeader {
     _length = listIntToUint32LE(data.sublist(16,20));
     _checksum = listIntToUint32LE(data.sublist(20,24));
     _payload = data.sublist(24, 24 + _length);
+  }
+
+  String get command => _command;
+
+  set command(String value) {
+    _command = value;
+  }
+
+  int get length => _length;
+
+  set length(int value) {
+    _length = value;
+  }
+
+  int get checksum => _checksum;
+
+  set checksum(int value) {
+    _checksum = value;
+  }
+
+  List<int> get payload => _payload;
+
+  set payload(List<int> value) {
+    _payload = value;
   }
 }
 
