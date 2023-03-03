@@ -359,11 +359,9 @@ class MessageNodes {
       MsgInv msgInv = MsgInv();
       msgInv.deserialize(msgHeader._payload);
 
-      List<CInv> msgInvData = msgInv.invVector;
-
       MsgGetData msgGetData = MsgGetData();
 
-      msgGetData = extendInv(msgInvData, msgGetData);
+      msgGetData.invVector = extendInv(msgInv.invVector, msgGetData.invVector);
 
       if (msgGetData.invVector.isNotEmpty) {
         MsgHeader msgGetMessage = new MsgHeader();
@@ -414,7 +412,7 @@ class MessageNodes {
   void extendVersion() {
   }
 
-  MsgGetData extendInv(List<CInv> msgInvData, MsgGetData msgGetData) {
+  List<CInv> extendInv(List<CInv> msgInvData, List<CInv> msgGetDataInvData) {
   }
 
   void extendCommandsSupported(MsgHeader msgHeader) {
