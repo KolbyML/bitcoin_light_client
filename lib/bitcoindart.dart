@@ -417,6 +417,7 @@ class MessageNodes {
   }
 
   List<CInv> extendInv(List<CInv> msgInvData, List<CInv> msgGetDataInvData) {
+    return msgGetDataInvData;
   }
 
   void extendCommandsSupported(MsgHeader msgHeader) {
