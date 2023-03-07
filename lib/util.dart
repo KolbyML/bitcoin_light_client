@@ -132,30 +132,3 @@ int getrandbits64() {
   int random2 = r.nextInt(pow(2, 32));
   return ((random1 << 32) | random2).abs(); // 64bit random number
 }
-
-class NodeListClass {
-  Map<String, int> listOfNodes = Map<String, int>();
-
-  NodeListClass({this.listOfNodes});
-
-  factory NodeListClass.fromJson(Map<String, dynamic> json) {
-    Map<String, int> tmp = Map<String, int>();
-    for (var i = 0; i < json['nodelist'].length; i++) {
-      tmp[json['nodelist'][i][0]] = json['nodelist'][i][1];
-    }
-    return NodeListClass(
-      listOfNodes: tmp,
-    );
-  }
-}
-
-Future<NodeListClass> fetchNodeList() async {
-  final response = await http.get(Uri.parse('https://omegablockchain.net/omeganodelist.json'));
-  if (response.statusCode == 200) {
-    print(jsonDecode(response.body));
-    return NodeListClass.fromJson(json.decode(response.body));
-  } else {
-    print('Something went wrong. \nResponse Code : ${response.statusCode}');
-    throw Error();
-  }
-}

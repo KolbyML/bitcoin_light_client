@@ -13,7 +13,7 @@ import 'package:collection/collection.dart';
 
 // Actually use global vars
 List<int> IPV4_COMPAT = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
-Map<String, int> nodeList = Map<String, int>();
+Map<String, int> nodeList = {'47.88.86.79': 8333, '165.227.84.200': 8333, '173.48.121.181': 8333, '47.88.86.79': 8333, };
 List<MessageNodes> nodes = [];
 ServerSocket server;
 Configuration config;
@@ -21,10 +21,10 @@ Configuration config;
 class Configuration {
   String default_user_agent;
   int default_port;
+  int connection_limit;
   List<int> magic;
 
-  Configuration({String this.default_user_agent = "/Bitcoin Dart LN:1.0.0/", int this.default_port = 8333, List<int> this.magic = const [0xf9, 0xbe, 0xb4, 0xd9]});
-  Configuration.custom(String default_user_agent, int default_port, List<int> magic) : this.default_user_agent = default_user_agent, this.default_port = default_port, this.magic = magic;
+  Configuration({String this.default_user_agent = "/Bitcoin Dart LN:1.0.0/", int this.default_port = 8333, int this.connection_limit = 6, List<int> this.magic = const [0xf9, 0xbe, 0xb4, 0xd9]});
 }
 
 // Default Message Types
@@ -450,40 +450,37 @@ void startServerSocket(int port) {
   });
 }
 
-void startNode({Configuration configuration = null}) {
+void startNode({Configuration configuration = null, Map<String, int> customNodeList = null}) {
   if (configuration == null) {
     config = Configuration();
   } else {
     config = configuration;
   }
 
-  // getnode list
-  fetchNodeList().then((value) {
-    nodeList = value.listOfNodes;
+  if (customNodeList != null) {
+    nodeList = customNodeList;
+  }
 
-    // code start
+  for (var k in nodeList.keys) {
+    addNode(k, nodeList[k]);
+  }
 
-    for (var k in nodeList.keys) {
-      addNode(k, nodeList[k]);
-    }
+  for (var i = 0; i < nodes.length; i++) {
+    sendGetAddrMessage(nodes[i]);
+  }
 
-    for (var i = 0; i < nodes.length; i++) {
-      sendGetAddrMessage(nodes[i]);
-    }
-
-    Timer.periodic(Duration(seconds: 20), (timer) {
-      if (nodes.length <= 6) {
-        for (var i = 0; i < nodes.length; i++) {
-          sendGetAddrMessage(nodes[i]);
-        }
+  Timer.periodic(Duration(seconds: 20), (timer) {
+    if (nodes.length <= 6) {
+      for (var i = 0; i < nodes.length; i++) {
+        sendGetAddrMessage(nodes[i]);
       }
-      // if nodes are ever zero try to add nodes from nodes list again
-      if (nodes.length == 0) {
-        for (var k in nodeList.keys) {
-          addNode(k, nodeList[k]);
-        }
+    }
+    // if nodes are ever zero try to add nodes from nodes list again
+    if (nodes.length == 0) {
+      for (var k in nodeList.keys) {
+        addNode(k, nodeList[k]);
       }
-    });
+    }
   });
 }
 
@@ -496,11 +493,11 @@ bool addNode(String ip, [port = null]) {
   }
 
   periodCount++;
-  if (periodCount >= 6) {
+  if (periodCount >= config.connection_limit) {
     periodCount--;
     return false;
   }
-  if (nodes.length > 6) {
+  if (nodes.length > config.connection_limit) {
     periodCount--;
     return false;
   }
