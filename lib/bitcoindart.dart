@@ -391,7 +391,7 @@ class MessageNodes {
       // any nodes we get try to add.
       for (int i = 0; i < okAddrGG.length; i++) {
         if (nodes.length <= 6) {
-          addNode(okAddrGG[i].ip, okAddrGG[i].port);
+          customAddNode(okAddrGG[i].ip, okAddrGG[i].port);
         }
       }
     } else if (msgHeader._command == reject) {
@@ -407,6 +407,10 @@ class MessageNodes {
     } else {
       extendCommandsSupported(msgHeader);
     }
+  }
+
+  void customAddNode(String ip, [port = null]) {
+    addNode(ip, port);
   }
 
   void extendVersion() {
@@ -446,8 +450,6 @@ void startServerSocket(int port) {
 }
 
 void startNode({Configuration configuration = null}) {
-  print('hi');
-
   if (configuration == null) {
     config = Configuration();
   } else {
@@ -481,18 +483,7 @@ void startNode({Configuration configuration = null}) {
         }
       }
     });
-
-    // code end
-
-
   });
-
-  //end get node list
-
-  //addNode(nodeList[1]);
-  //addNode(nodeList[3]);
-  //addNode(nodeList[2]);
-  //addNode('192.168.0.193');
 }
 
 // Hacky way to limit the connections works like a semiphore
