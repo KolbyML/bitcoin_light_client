@@ -258,6 +258,7 @@ class MessageNodes {
   int port;
   bool fSuccessfullyConnected;
   bool didWeSendVersion;
+  List<int> socketDataBuffer = [];
 
   MessageNodes(Socket inputsocket) {
     socket = inputsocket;
@@ -280,30 +281,39 @@ class MessageNodes {
     //  (4) checksum
     //  (x) data
     //
+    socketDataBuffer = socketDataBuffer + data;
     List<int> mutableDataList = new List<int>.from(data);
     Map<int, List<int>> listOfTcpPackets = new Map<int, List<int>>();
     List<int> dataTmp = [];
     int k = 0;
 
-    while (mutableDataList.isNotEmpty) {
-      if (IterableEquality().equals([mutableDataList[0], mutableDataList[1], mutableDataList[2], mutableDataList[3]], config.magic)) {
-        int size = listIntToUint32LE(mutableDataList.sublist(16,20));
-        int checksum = listIntToUint32LE(mutableDataList.sublist(20,24));
-        List<int> payloadData =  mutableDataList.sublist(24, 24 + size);
+    bool continueWhileLoop = true;
+    while (socketDataBuffer.isNotEmpty && continueWhileLoop) {
+      if (IterableEquality().equals([socketDataBuffer[0], socketDataBuffer[1], socketDataBuffer[2], socketDataBuffer[3]], config.magic)) {
+        int size = listIntToUint32LE(socketDataBuffer.sublist(16,20));
+        int checksum = listIntToUint32LE(socketDataBuffer.sublist(20,24));
+
+        // if buffer doesn't hold enough data to use sublist breakout
+        if (socketDataBuffer.length < 24 + size) {
+          continueWhileLoop = false;
+          break;
+        }
+
+        List<int> payloadData =  socketDataBuffer.sublist(24, 24 + size);
         int checksumCalculated = listIntToUint32LE(sha256.convert(sha256.convert(payloadData).bytes).bytes.sublist(0, 4));
 
         if (checksum == checksumCalculated) {
           listOfTcpPackets[k] = [];
-          listOfTcpPackets[k] = mutableDataList.sublist(0, 24 + size);
+          listOfTcpPackets[k] = socketDataBuffer.sublist(0, 24 + size);
           k += 1;
 
-          if (mutableDataList.length > 24 + size) {
+          if (socketDataBuffer.length > 24 + size) {
             dataTmp.clear();
-            dataTmp = new List<int>.from(mutableDataList.sublist(24 + size));
-            mutableDataList.clear();
-            mutableDataList = new List<int>.from(dataTmp);
+            dataTmp = new List<int>.from(socketDataBuffer.sublist(24 + size));
+            socketDataBuffer.clear();
+            socketDataBuffer = new List<int>.from(dataTmp);
           } else {
-            mutableDataList.clear();
+            continueWhileLoop = false;
           }
         }
       }
