@@ -1,6 +1,6 @@
 name: bitcoin_light_client
 description: A bitcoin p2p light client written in Dart. The library is designed to be extendable for developers to be able to build custom messages which fit their use-cases.
-version: 1.0.0
+version: 1.0.1
 repository: https://github.com/KolbyML/bitcoin_light_client
 issue_tracker: https://github.com/KolbyML/bitcoin_light_client/issues
 

@@ -25,7 +25,7 @@ class Configuration {
   int connection_limit;
   List<int> magic;
 
-  Configuration({String this.default_user_agent = "/Bitcoin Dart LN:1.0.0/", int this.default_port = 8333, int this.connection_limit = 6, List<int> this.magic = const [0xf9, 0xbe, 0xb4, 0xd9]});
+  Configuration({String this.default_user_agent = "/Bitcoin Dart LN:1.0.1/", int this.default_port = 8333, int this.connection_limit = 6, List<int> this.magic = const [0xf9, 0xbe, 0xb4, 0xd9]});
 }
 
 // Default Message Types
