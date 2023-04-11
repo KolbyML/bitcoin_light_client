@@ -1,6 +1,9 @@
-name: bitcoindart_light_client
+name: bitcoindart
 description: A bitcoin p2p light client
-version: 0.0.2
+version: 1.0.0
+repository: https://github.com/KolbyML/bitcoindart
+issue_tracker: https://github.com/KolbyML/bitcoindart/issues
+
 homepage:
 
 environment:
@@ -9,3 +12,4 @@ environment:
 dependencies:
   crypto: ^2.1.5
   http: ^0.13.0
+  test: ^1.16.0

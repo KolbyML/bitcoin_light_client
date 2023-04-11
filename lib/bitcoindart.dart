@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-library bitcoindart_light_client;
+library bitcoindart;
 
 import 'dart:async';
 import 'dart:convert';

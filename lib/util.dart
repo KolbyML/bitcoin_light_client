@@ -5,8 +5,6 @@
 import 'dart:math';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:http/http.dart' as http;
-import 'bitcoindart.dart';
 
 // same values just the List below is encoded in utf8
 const String CHARS_ALPHA_NUM = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,;-_/:?@()";
