@@ -12,12 +12,13 @@ import 'package:crypto/crypto.dart';
 import 'package:collection/collection.dart';
 
 // Actually use global vars
-List<int> IPV4_COMPAT = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
-Map<String, int> nodeList = {'47.88.86.79': 8333, '165.227.84.200': 8333, '173.48.121.181': 8333, '47.88.86.79': 8333, };
+List<int> ipv4Compat = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff];
+Map<String, int> nodeList = {'47.88.86.79': 8333, '165.227.84.200': 8333, '173.48.121.181': 8333 };
 List<MessageNodes> nodes = [];
-ServerSocket server;
-Configuration config;
+late ServerSocket server;
+Configuration? config;
 
+// Configuration class used for initiating client
 class Configuration {
   String default_user_agent;
   int default_port;
@@ -38,37 +39,43 @@ String addr = "addr";
 String getaddr = "getaddr";
 String reject = "reject";
 
+// ping used to ping other nodes to see if they are still running
 class MsgPing {
-  int nonce;
+  int nonce = 0;
 
   MsgPing() {
     nonce = getrandbits64();
   }
 
+  // serializes message
   List<int> serialize() {
     List<int> messageData = uint64ToListIntLE(nonce);
     return messageData;
   }
 
+  // deserialize message
   void deserialize(List<int> data) {
     nonce = listIntToUint64LE(data.sublist(0,8));
   }
 }
 
+// a class handling the reject message type
 class MsgReject {
-  String message;
-  int ccode;
-  String reason;
+  late String message;
+  late int ccode;
+  late String reason;
 
   MsgReject() {
     ccode = 0;
   }
 
+  // serializes message
   List<int> serialize() {
     List<int> messageData = uint8ToListIntLE(message.length) + utf8.encode(message) + uint8ToListIntLE(ccode) + uint8ToListIntLE(reason.length) + utf8.encode(reason);
     return messageData;
   }
 
+  // deserialize message
   void deserialize(List<int> data) {
     int messageLength = listIntToUint8LE(data.sublist(0, 1));
     if (messageLength == 0) {
@@ -86,9 +93,10 @@ class MsgReject {
   }
 }
 
+// a class representating inv's
 class CInv {
-  int type;
-  List<int> hash;
+  late int type;
+  late List<int> hash;
 
   CInv() {
     type = 0;
@@ -99,19 +107,22 @@ class CInv {
     hash = inputHash;
   }
 
+  // serializes message
   List<int> serialize() {
     List<int> messageData = uint32ToListIntLE(type) + hash;
     return messageData;
   }
 }
 
+// a class handling the inv message type
 class MsgInv {
-  List<CInv> invVector;
+  late List<CInv> invVector;
 
   MsgInv() {
     invVector = [];
   }
 
+  // deserialize message
   void deserialize(List<int> data) {
     int invCount = listIntToUint8LE(data.sublist(0, 1));
     for (var i=0; i < invCount; i++) {
@@ -122,13 +133,15 @@ class MsgInv {
   }
 }
 
+// a class handling the getdata message type
 class MsgGetData {
-  List<CInv> invVector;
+  late List<CInv> invVector;
 
   MsgGetData() {
     invVector = [];
   }
 
+  // serializes message
   List<int> serialize() {
     List<int> messageData = uint8ToListIntLE(invVector.length);
     for (var i=0; i < invVector.length; i++) {
@@ -137,6 +150,7 @@ class MsgGetData {
     return messageData;
   }
 
+  // deserialize message
   void deserialize(List<int> data) {
     int invCount = listIntToUint8LE(data.sublist(0, 1));
     for (var i=0; i < invCount; i++) {
@@ -147,16 +161,17 @@ class MsgGetData {
   }
 }
 
+// a class handling the version message type
 class MsgVersion {
-  int version;
-  int services;
-  int timestamp;
-  CAddress addr_recv;
-  CAddress addr_from;
-  int nonce;
-  String user_agent;
-  int start_height;
-  int relay;
+  late int version;
+  late int services;
+  late int timestamp;
+  late CAddress addr_recv;
+  late CAddress addr_from;
+  late int nonce;
+  late String user_agent;
+  late int start_height;
+  late int relay;
 
   MsgVersion() {
     version = 70210;
@@ -165,16 +180,18 @@ class MsgVersion {
     addr_recv = CAddress.data("127.0.0.1");
     addr_from = CAddress();
     nonce = getrandbits64();
-    user_agent = config.default_user_agent;
+    user_agent = config!.default_user_agent;
     start_height = 0;
     relay = 0;
   }
 
+  // serializes message
   List<int> serialize() {
     List<int> messageData = uint32ToListIntLE(version) + uint64ToListIntLE(services) + uint64ToListIntLE(timestamp) + addr_recv.serialize() + addr_from.serialize() + uint64ToListIntLE(nonce) + uint8ToListIntLE(user_agent.length) + utf8.encode(user_agent) + uint32ToListIntLE(start_height) + [relay];
     return messageData;
   }
 
+  // deserialize message
   void deserialize(List<int> data) {
     version = listIntToUint32LE(data.sublist(0, 4));
     services = listIntToUint64LE(data.sublist(4, 12));
@@ -193,12 +210,13 @@ class MsgVersion {
   }
 }
 
+// a class representing the message header
 class MsgHeader {
-  List<int> _magic;
-  String _command;
-  int _length;
-  int _checksum;
-  List<int> _payload;
+  late List<int> _magic;
+  late String _command;
+  late int _length;
+  late int _checksum;
+  late List<int> _payload;
 
   List<int> get magic => _magic;
 
@@ -207,19 +225,21 @@ class MsgHeader {
   }
 
   MsgHeader() {
-    _magic = config.magic;
+    _magic = config!.magic;
     _command = "";
     _length = 0;
     _checksum = 0;
-    _payload = new List<int>();
+    _payload = new List.filled(0, 0, growable: true);
   }
 
+  // serializes message
   List<int> serialize() {
     List<int> checksum = sha256.convert(sha256.convert(_payload).bytes).bytes.sublist(0, 4);
     List<int> messageData = _magic + getPaddedCommand(_command) + uint32ToListIntLE(_payload.length) + checksum + _payload;
     return messageData;
   }
 
+  // deserialize message
   void deserialize(List<int> data) {
     _command = utf8.decode(removeTrailingZeros(data.sublist(4,16)));
     _length = listIntToUint32LE(data.sublist(16,20));
@@ -252,13 +272,14 @@ class MsgHeader {
   }
 }
 
+// a class handling TCP connections
 class MessageNodes {
-  Socket socket;
-  String ip;
-  int port;
-  bool fSuccessfullyConnected;
-  bool didWeSendVersion;
-  List<int> socketDataBuffer = [];
+  late Socket socket;
+  late String ip;
+  late int port;
+  late bool fSuccessfullyConnected;
+  late bool didWeSendVersion;
+  late List<int> socketDataBuffer = [];
 
   MessageNodes(Socket inputsocket) {
     socket = inputsocket;
@@ -282,14 +303,13 @@ class MessageNodes {
     //  (x) data
     //
     socketDataBuffer = socketDataBuffer + data;
-    List<int> mutableDataList = new List<int>.from(data);
     Map<int, List<int>> listOfTcpPackets = new Map<int, List<int>>();
     List<int> dataTmp = [];
     int k = 0;
 
     bool continueWhileLoop = true;
     while (socketDataBuffer.isNotEmpty && continueWhileLoop) {
-      if (IterableEquality().equals([socketDataBuffer[0], socketDataBuffer[1], socketDataBuffer[2], socketDataBuffer[3]], config.magic)) {
+      if (IterableEquality().equals([socketDataBuffer[0], socketDataBuffer[1], socketDataBuffer[2], socketDataBuffer[3]], config!.magic)) {
         int size = listIntToUint32LE(socketDataBuffer.sublist(16,20));
         int checksum = listIntToUint32LE(socketDataBuffer.sublist(20,24));
 
@@ -419,37 +439,45 @@ class MessageNodes {
     }
   }
 
+  // extendible function for implementing custom addnode function
   void customAddNode(String ip, [port = null]) {
     addNode(ip, port);
   }
 
+  // extendible function for extending version response
   void extendVersion() {
   }
 
+  // extendible function for extending inv response
   List<CInv> extendInv(List<CInv> msgInvData, List<CInv> msgGetDataInvData) {
     return msgGetDataInvData;
   }
 
+  // extendible function for adding additional supported commands
   void extendCommandsSupported(MsgHeader msgHeader) {
   }
 
+  // handle errors
   void errorHandler(error){
     print('$ip:$port Error: $error');
     removeNode(this);
     socket.close();
   }
 
+  // properly handle disconnects
   void finishedHandler() {
     print('$ip:$port Disconnected');
     removeNode(this);
     socket.close();
   }
 
+  // sends a message
   void pushMessage(List<int> data) {
     socket.add(data);
   }
 }
 
+// start a server TCP socket
 void startServerSocket(int port) {
   ServerSocket.bind(InternetAddress.anyIPv4, port)
       .then((ServerSocket socket) {
@@ -460,7 +488,8 @@ void startServerSocket(int port) {
   });
 }
 
-void startNode({Configuration configuration = null, Map<String, int> customNodeList = null}) {
+// start node and initialize everything
+void startNode({Configuration? configuration = null, Map<String, int>? customNodeList = null}) {
   if (configuration == null) {
     config = Configuration();
   } else {
@@ -496,18 +525,19 @@ void startNode({Configuration configuration = null, Map<String, int> customNodeL
 
 // Hacky way to limit the connections works like a semiphore
 int periodCount = 0;
+// add node to the client
 bool addNode(String ip, [port = null]) {
 
   if (port == null) {
-    port = config.default_port;
+    port = config!.default_port;
   }
 
   periodCount++;
-  if (periodCount >= config.connection_limit) {
+  if (periodCount >= config!.connection_limit) {
     periodCount--;
     return false;
   }
-  if (nodes.length > config.connection_limit) {
+  if (nodes.length > config!.connection_limit) {
     periodCount--;
     return false;
   }
@@ -530,8 +560,11 @@ bool addNode(String ip, [port = null]) {
     periodCount--;
     return false;
   });
+
+  return true;
 }
 
+// handles incoming connections
 void handleConnection(Socket node, bool didWeInitiateConnection){
   MessageNodes messageNodes = new MessageNodes(node);
   nodes.add(messageNodes);
@@ -549,16 +582,19 @@ void handleConnection(Socket node, bool didWeInitiateConnection){
   }
 }
 
+// removes nodes from global list
 void removeNode(MessageNodes messageNodes) {
   nodes.remove(messageNodes);
 }
 
+// relays message to all nodes
 void relayMessage(List<int> message) {
   nodes.forEach((messageNodes) {
     messageNodes.pushMessage(message);
   });
 }
 
+// sends a get address message
 void sendGetAddrMessage(MessageNodes messageNodes) {
   MsgHeader getAddrMessage = new MsgHeader();
   getAddrMessage._command = getaddr;
@@ -567,23 +603,25 @@ void sendGetAddrMessage(MessageNodes messageNodes) {
   messageNodes.pushMessage(getAddrMessage.serialize());
 }
 
+// a class handling the addr message type
 class MsgAddr {
-  List<CAddress> addrList;
+  late List<CAddress> addrList;
 
   MsgAddr() {
     addrList = [];
   }
 
+  // deserialize message
   void deserialize(List<int> data) {
     int addrCount = listIntToUint8LE(data.sublist(0, 1));
     for (var i=0; i < addrCount; i++) {
       CAddress cAddress = CAddress.notVersion();
 
       String ip;
-      if (IterableEquality().equals(data.sublist(13 + (30 * i), 25 + (30 * i)), IPV4_COMPAT)) {
+      if (IterableEquality().equals(data.sublist(13 + (30 * i), 25 + (30 * i)), ipv4Compat)) {
         ip = getIPv4String(data.sublist(25, 29));
       } else {
-        ip; // I didn't write code to support IPv6, but if I did it would be here.
+        // I didn't write code to support IPv6, but if I did it would be here.
         // we are passing cause we don't want to handle IPv6 nodes
         continue;
       }
@@ -593,25 +631,26 @@ class MsgAddr {
   }
 }
 
+// a class handling the addresses
 class CAddress {
-  int nServices;
-  int nTime;
-  String ip;
-  int port;
-  bool isVersionMessage;
+  late int nServices;
+  late int nTime;
+  late String ip;
+  late int port;
+  late bool isVersionMessage;
 
   CAddress() {
     nServices = 0;
     ip = "0.0.0.0";
-    port = config.default_port;
+    port = config!.default_port;
     nTime = new DateTime.now().millisecondsSinceEpoch ~/ 1000;
     isVersionMessage = true;
   }
 
-  CAddress.data(String ipIn, [int portIn = null, int nServicesIn = 0]) {
+  CAddress.data(String ipIn, [int? portIn = null, int nServicesIn = 0]) {
     nServices = nServicesIn;
     ip = ipIn;
-    port = (portIn == null) ? config.default_port : portIn;
+    port = (portIn == null) ? config!.default_port : portIn;
     nTime = new DateTime.now().millisecondsSinceEpoch ~/ 1000;
     isVersionMessage = true;
   }
@@ -619,7 +658,7 @@ class CAddress {
   CAddress.notVersion() {
     nServices = 0;
     ip = "0.0.0.0";
-    port = config.default_port;
+    port = config!.default_port;
     nTime = new DateTime.now().millisecondsSinceEpoch ~/ 1000;
     isVersionMessage = false;
   }
@@ -631,6 +670,7 @@ class CAddress {
     nTime = inputTime;
   }
 
+  // serializes message
   List<int> serialize() {
     List<int> messageData;
     if (isVersionMessage) {
@@ -641,10 +681,11 @@ class CAddress {
     return messageData;
   }
 
+  // deserialize message
   void deserialize(List<int> data) {
     if (isVersionMessage) {
       nServices = listIntToUint64LE(data.sublist(0, 8));
-      if (data.sublist(8, 20) == IPV4_COMPAT) {
+      if (data.sublist(8, 20) == ipv4Compat) {
         ip = getIPv4String(data.sublist(20, 24));
       } else {
         ip; // I didn't write code to support IPv6, but if I did it would be here.
@@ -653,7 +694,7 @@ class CAddress {
     } else {
       nTime = listIntToUint32LE(data.sublist(0, 4));
       nServices = listIntToUint64LE(data.sublist(4, 12));
-      if (IterableEquality().equals(data.sublist(12, 24), IPV4_COMPAT)) {
+      if (IterableEquality().equals(data.sublist(12, 24), ipv4Compat)) {
         ip = getIPv4String(data.sublist(24, 28));
       } else {
         ip; // I didn't write code to support IPv6, but if I did it would be here.
@@ -663,9 +704,10 @@ class CAddress {
   }
 }
 
+// a class handling more simple internal addresses
 class CAddressLite {
-  String ip;
-  int port;
+  late String ip;
+  late int port;
 
   CAddressLite(String inputIp, int inputPort) {
     ip = inputIp;
