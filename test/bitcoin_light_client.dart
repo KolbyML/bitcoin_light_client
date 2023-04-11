@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 
-import 'package:bitcoindart/util.dart';
+import 'package:bitcoin_light_client/util.dart';
 
 void main() {
   test('get padded comment', () {

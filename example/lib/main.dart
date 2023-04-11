@@ -5,8 +5,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:bitcoindart/util.dart';
-import 'package:bitcoindart/bitcoindart.dart';
+import 'package:bitcoin_light_client/util.dart';
+import 'package:bitcoin_light_client/bitcoin_light_client.dart';
 import 'package:crypto/crypto.dart';
 
 Map<List<int>, CAnonMsg> mapAnonMsg = Map<List<int>, CAnonMsg>();
