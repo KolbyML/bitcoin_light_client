@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Kolby Moroz Liebl
+// Copyright (c) 2021-2023 Kolby Moroz Liebl
 // Distributed under the MIT software license, see the accompanying
 // file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
